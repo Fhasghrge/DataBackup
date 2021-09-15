@@ -13,6 +13,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <map>
+#include <utility>
+#include<iterator>
+
+#define MAXLINK 5
+#define MAXFILENUM 10
+
 /* 设置备份文件根目录 */
 char backup[255] = "/home/byk/backup";
 
@@ -21,11 +28,12 @@ char backup[255] = "/home/byk/backup";
 
 int readFromAtoB(int fd1, int fd2);
 
-int copyAll(const char *currentPath, const char *targetPath)
+int copyAll(const char *currentPath, const char *targetPath, std::map<ino_t, std::string> &inodeTable)
 {
   char backupPathbuf[64];
   char pathbuf[64];
   char CWD[64];
+
 
   /* 错误验证处理 */
 
@@ -49,12 +57,28 @@ int copyAll(const char *currentPath, const char *targetPath)
   uid_t owner;
   gid_t group;
   //mode_t mode;
-  
+
   /* 得到文件的当前信息 */
   if(lstat(pathbuf, &statbuf) < 0)
   {
     fprintf(stderr, "lstat error: %s\n", pathbuf);
     return -1;
+  }
+
+  /* 保存当前文件的inode,若已经存在，说明是硬链接 */
+  auto iter = inodeTable.find(statbuf.st_ino);
+  if(S_ISDIR(statbuf.st_mode) == 0 && iter != inodeTable.end())
+  {
+    if( (ret = link(iter->second.c_str(), backupPathbuf)) < 0)
+    {
+      fprintf(stderr, "link error: from %s to %s\n", iter->second.c_str(), backupPathbuf);
+      return -1;
+    }
+    return SUCCESS_M;
+  }
+  else if(S_ISDIR(statbuf.st_mode) == 0)
+  {
+    inodeTable.insert(std::pair<ino_t, std::string>(statbuf.st_ino, backupPathbuf));
   }
 
   /* 备份需要的系统文件信息 */
@@ -211,7 +235,7 @@ int copyAll(const char *currentPath, const char *targetPath)
 
       snprintf(childFilePath, 64, "%s/%s", pathbuf, dirp->d_name);
       snprintf(backupChildFilePath, 64, "%s/%s", backupPathbuf, dirp->d_name);
-      if(copyAll(childFilePath, backupChildFilePath) < 0)
+      if(copyAll(childFilePath, backupChildFilePath, inodeTable) < 0)
       {
         fprintf(stderr, "copy %s to %s error\n", childFilePath, backupChildFilePath);
         return FALSE_M;
