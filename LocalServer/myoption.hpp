@@ -7,6 +7,7 @@
 #include <string>
 #include <cstdio>
 #include <cstring>
+#include <climits>
 #include <cstdlib>
 #include <dirent.h>
 #include <fcntl.h>
@@ -15,7 +16,9 @@
 
 #include <map>
 #include <utility>
-#include<iterator>
+#include <iterator>
+
+#include <openssl/aes.h>
 
 #define MAXLINK 5
 #define MAXFILENUM 10
