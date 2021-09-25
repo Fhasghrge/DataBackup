@@ -133,14 +133,15 @@
 ### 目录下的文件 getCurrentLS
 *输入
 {
-  method : getCurrnetLS
+  method : getCurrnetLS,
+  path : filepath
 }
 *返回
 {
   errcode: 0/1,
   trees: [
-      {"filename" : "" , "filetype" : "" ,"size" : "" },
-      {"filename" : "" , "filetype" : "" ,"size" : "" },
+      {"filename" : "" , "filetype" : "reg/dir/symlink/fifo" , "inode" : 5 ,"size" : 4567 },
+      {"filename" : "" , "filetype" : "" , "inode" : 8 ,"size" : "" },
       ...
   ]
 }
