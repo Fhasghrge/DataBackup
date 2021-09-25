@@ -88,14 +88,15 @@
 
 
 ### int encrypAll(const char *currentfile, const char *targetFile)    
-> 
+> 加密
 *参数currentPath 为要加密文件名， 参数targetFile为加密目的文件
 *返回值 0 成功， 1 错误  
 *输入：
 {
   "method" : "encrypt" ,
   "source" : "file1" ,
-  "target" : "file2" 
+  "target" : "file2" ,
+  "key" : "56513215"
 }
 #返回：  
 {
@@ -105,13 +106,15 @@
 
 
 ### int decrypAll(const char *targetPath, const char *sourceFile)    
+> 解密
 *参数targetPath 是要解密的目的文件， 参数sourceFile是源文件
 *返回值 0 成功， 1 错误  
 *输入：
 {
   "method" : "encrypt" ,
   "source" : "file1" ,
-  "target" : "file2" 
+  "target" : "file2" ,
+  "key" : "56513215"
 }
 #返回：  
 {
@@ -130,11 +133,11 @@
   pwd : ""
 }
 
-### 目录下的文件 getCurrentLS
+### 获得目录文件 getList
 *输入
 {
-  method : getCurrnetLS,
-  path : filepath
+  method : getList,
+  path : "dir1"
 }
 *返回
 {
