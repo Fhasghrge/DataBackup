@@ -1,10 +1,13 @@
 #ifndef my_option_hpp
 #define my_option_hpp
 
-//#include <websocketpp/config/asio_no_tls.hpp>
-//#include <websocketpp/server.hpp>
+#include <websocketpp/config/asio_no_tls.hpp>
+#include <websocketpp/server.hpp>
+#include <json/json.h>
 #include <iostream>
 #include <string>
+#include <memory>
+#include <sstream>
 #include <cstdio>
 #include <cstring>
 #include <climits>
@@ -45,6 +48,10 @@ int writeInfo2File(int targetFd, pFileInfo head);
 int readFromAtoB(int fd1, int fd2);
 int readFileInfo(int sourceFd, pFileInfo head);
 int readNDataFromAtoB(int fd1, int fd2, int size);
+int isEndOfFile(int fd);
+
+std::string getCWD();
+std::string listWorkingDir();
 
 int copyAll(const char *currentPath, const char *targetPath, std::map<ino_t, std::string> &inodeTable)
 {
@@ -58,7 +65,7 @@ int copyAll(const char *currentPath, const char *targetPath, std::map<ino_t, std
 
   /* 如果要备份的文件目录不是绝对路径，增加前缀 /home/byk/backup 修改为绝对路径 */
   if(targetPath[0] != '/')
-    snprintf(backupPathbuf, 64, "%s/%s", backup, targetPath);
+    snprintf(backupPathbuf, 64, "%s/%s", getcwd(CWD, 64), targetPath);
   else
     strncpy(backupPathbuf, targetPath, 64);
 
@@ -811,5 +818,120 @@ int readNDataFromAtoB(int fd1, int fd2, int size)
 
   return SUCCESS_M;
 }
+
+int isEndOfFile(int fd)
+{
+  int curPos,end;
+  int res,ret;
+
+  if( (curPos = lseek(fd, 0, SEEK_CUR)) < 0 )
+  {
+    fprintf(stderr, "error lseek in isEndOfFile\n");
+    return -1;
+  }
+
+  if( (end = lseek(fd, 0, SEEK_END)) <0 )
+  {
+    fprintf(stderr, "error lseek in isEndOfFile\n");
+    return -1;
+  }
+
+  res = (curPos == end) ? 1 : 0;
+
+  if( (ret = lseek(fd, curPos, SEEK_SET)) < 0 )
+  {
+    fprintf(stderr, "error lseek in isEndOfFile\n");
+    return -1;
+  }
+
+  return res;
+}
+
+std::string getCWDToJson()
+{
+  char cwd[64];
+  getcwd(cwd, 64);
+
+  Json::Value root;
+  Json::StreamWriterBuilder writerBuilder;
+  std::ostringstream os;
+  std::string json_str;
+
+  root["errcode"] = 0;
+  root["cwd"] = cwd;
+
+  std::unique_ptr<Json::StreamWriter> jsonWriter(writerBuilder.newStreamWriter()); 
+  jsonWriter->write(root, &os);
+  json_str = os.str();
+
+  return json_str;
+}
+
+std::string listWorkingDir()
+{
+  char cwd[64];
+  getcwd(cwd, 64);
+
+  Json::Value root;
+  Json::Value trees;
+  Json::StreamWriterBuilder writerBuilder;
+  std::ostringstream os;
+  std::string json_str;
+
+  int ret;
+  struct stat statbuf;
+
+  if( (ret = lstat(cwd, statbuf)) < 0 )
+  {
+    fprintf(stderr, "lstat error in list\n");
+    root["errcode"] = 1;
+
+    std::unique_ptr<Json::StreamWriter> jsonWriter(writerBuilder.newStreamWriter()); 
+    jsonWriter->write(root, &os);
+    json_str = os.str();
+    return json_str;
+  }
+
+  if(S_ISDIR(statbuf.st_mode))
+  {
+    struct dirent *dirp;
+    DIR *dp;
+    struct stat st;
+    
+    int i = 0;
+    while( (dirp = readdir(dp)) != NULL)
+    {
+      if(strcmp(dirp->d_name, ".") == 0 || strcmp(dirp->d_name, "..") == 0)
+      {
+        continue;
+      }
+
+      if( (ret = lstat(dirp->d_name, st)) < 0 )
+      {
+        fprintf(stderr, "lstat error in list_readdir\n");
+        root["errcode"] = 1;
+
+        std::unique_ptr<Json::StreamWriter> jsonWriter(writerBuilder.newStreamWriter()); 
+        jsonWriter->write(root, &os);
+        json_str = os.str();
+        return json_str;
+      }
+
+      {
+        Json::Value file;
+        file["filename"] = dirp->d_name;
+
+        if(S_ISDIR(st.st_mode))
+
+        file["filetype"] = ;
+        file["size"] = st.st_size;
+        trees[i++] = file;
+      }
+
+    }
+  }
+
+}
+
 
 #endif
