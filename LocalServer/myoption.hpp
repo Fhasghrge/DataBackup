@@ -51,7 +51,7 @@ int readNDataFromAtoB(int fd1, int fd2, int size);
 int isEndOfFile(int fd);
 
 std::string getCWD();
-std::string listWorkingDir();
+std::string listWorkingDir(const char *path);
 
 int copyAll(const char *currentPath, const char *targetPath, std::map<ino_t, std::string> &inodeTable)
 {
@@ -867,11 +867,8 @@ std::string getCWDToJson()
   return json_str;
 }
 
-std::string listWorkingDir()
+std::string listWorkingDir(const char *path)
 {
-  char cwd[64];
-  getcwd(cwd, 64);
-
   Json::Value root;
   Json::Value trees;
   Json::StreamWriterBuilder writerBuilder;
@@ -881,7 +878,7 @@ std::string listWorkingDir()
   int ret;
   struct stat statbuf;
 
-  if( (ret = lstat(cwd, statbuf)) < 0 )
+  if( (ret = lstat(path, &statbuf)) < 0 )
   {
     fprintf(stderr, "lstat error in list\n");
     root["errcode"] = 1;
@@ -898,15 +895,28 @@ std::string listWorkingDir()
     DIR *dp;
     struct stat st;
     
+    if( (dp = opendir(path)) == NULL)
+    {
+      fprintf(stderr, "opendir error: %s\n", path);
+      root["errcode"] = 1;
+
+      std::unique_ptr<Json::StreamWriter> jsonWriter(writerBuilder.newStreamWriter()); 
+      jsonWriter->write(root, &os);
+      json_str = os.str();
+      return json_str;
+    }
+
     int i = 0;
     while( (dirp = readdir(dp)) != NULL)
     {
+      char nameBuf[64];
+      snprintf(nameBuf, 64, "%s/%s", path, dirp->d_name);
       if(strcmp(dirp->d_name, ".") == 0 || strcmp(dirp->d_name, "..") == 0)
       {
         continue;
       }
 
-      if( (ret = lstat(dirp->d_name, st)) < 0 )
+      if( (ret = lstat(nameBuf, &st)) < 0 )
       {
         fprintf(stderr, "lstat error in list_readdir\n");
         root["errcode"] = 1;
@@ -919,19 +929,43 @@ std::string listWorkingDir()
 
       {
         Json::Value file;
-        file["filename"] = dirp->d_name;
+        file["filename"] = nameBuf;
 
         if(S_ISDIR(st.st_mode))
+        {
+          file["filetype"] = "dir";
+        }
+        else if(S_ISREG(st.st_mode))
+        {
+          file["filetype"] = "reg";
+        }
+        else if(S_ISFIFO(st.st_mode))
+        {
+          file["filetype"] = "fifo";
+        }
+        else if(S_ISLNK(st.st_mode))
+        {
+          file["filetype"] = "symlink";
+        }
+        else
+        {
+          file["filetype"] = "default";
+        }
 
-        file["filetype"] = ;
+        file["inode"] = st.st_ino;
         file["size"] = st.st_size;
         trees[i++] = file;
       }
-
     }
   }
 
-}
+  root["errcode"] = 0;
+  root["trees"] = trees;
 
+  std::unique_ptr<Json::StreamWriter> jsonWriter(writerBuilder.newStreamWriter()); 
+  jsonWriter->write(root, &os);
+  json_str = os.str();
+  return json_str;
+}
 
 #endif

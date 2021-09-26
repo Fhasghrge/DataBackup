@@ -15,3 +15,11 @@
 4. 开发想法/讨论问题 统一放在github的**issues**中管理
 
 5. 注意使用`.ignore`忽略不必要的代码提交
+   
+
+## build
+- brew install websocketpp
+- brew install boost
+- brew install  jsoncpp
+- brew install  openssl@3
+- brew install  openssl-devel
