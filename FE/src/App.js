@@ -1,6 +1,5 @@
 import styled, { createGlobalStyle } from 'styled-components'
 import DirTree from './components/DirTrees';
-
 const GlobalStyle = createGlobalStyle`
   * {
     padding: 0;
@@ -12,6 +11,10 @@ const AppWrapper = styled.div`
   display: flex;
   justify-content: space-around;
   height: 100vh;
+  &::first-child {
+    visibility: hidden;
+    background-color: red;
+  }
   > div {
     width: 100%;
     padding: 10px 20px;
@@ -19,11 +22,12 @@ const AppWrapper = styled.div`
 `
 
 function App() {
+  
   return (
     <AppWrapper>
       <GlobalStyle />
-      <DirTree title='源文件' bgColor='#B5A28A' />
-      <DirTree title='备份文件' bgColor='#254043' />
+      {/* <DirTree title='源文件' bgColor='#B5A28A' /> */}
+      <DirTree title='数据备份' bgColor='#B5A28A' />
     </AppWrapper>
   );
 }
