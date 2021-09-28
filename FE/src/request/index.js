@@ -1,4 +1,4 @@
-const ws = new WebSocket("ws://127.0.0.1:9003");
+const ws = new WebSocket("ws://127.0.0.1:8082");
 
 ws.onopen = function (evt) {
   console.log("Connection open ...");
@@ -20,8 +20,8 @@ export function getCurrentPwd() {
   return new Promise((resolve, reject) => {
     ws.onmessage = function (evt) {
       const res = JSON.parse(evt.data)
-      if (res.cwd) {
-        resolve(res.cwd)
+      if (res.pwd) {
+        resolve(res.pwd)
         console.log(res)
       }
     };
